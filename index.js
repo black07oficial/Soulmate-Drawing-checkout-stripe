@@ -3,7 +3,11 @@ const cors = require('cors');
 const stripe = require('stripe')('sk_test_51R7hjAEt83JyliblOKDecneD2IAJYAeG8u5X1AzSf7kInh2A36xsQHSKQ3MaILLIpaUrWpI2MtIIG4SbP0vCUA1A00YWP175ZR');
 const app = express();
 
-app.use(cors());
+// ✅ Habilita CORS apenas para seu frontend
+app.use(cors({
+  origin: 'https://soulmate-drawing.vercel.app',
+}));
+
 app.use(express.json());
 
 app.post('/create-checkout-session', async (req, res) => {
