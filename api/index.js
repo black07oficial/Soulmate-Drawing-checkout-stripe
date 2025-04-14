@@ -1,39 +1,35 @@
-const express = require('express');
-const cors = require('cors');
-const stripe = require('stripe')('sk_test_51R7hjAEt83JyliblOKDecneD2IAJYAeG8u5X1AzSf7kInh2A36xsQHSKQ3MaILLIpaUrWpI2MtIIG4SbP0vCUA1A00YWP175ZR');
-const app = express();
+// Carrega a biblioteca do Stripe com sua chave secreta do .env
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
-app.use(cors());
-app.use(express.json());
+module.exports = async (req, res) => {
+  // 🔓 Libera o domínio do seu frontend para acessar a API
+  res.setHeader('Access-Control-Allow-Origin', 'https://soulmate-drawing.vercel.app');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-app.post('/create-checkout-session', async (req, res) => {
+  // ✅ Trata requisições OPTIONS (preflight do navegador)
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  // ❌ Rejeita métodos diferentes de POST
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Método não permitido' });
+  }
+
   try {
-    const session = await stripe.checkout.sessions.create({
+    // 💳 Cria o PaymentIntent com valor e moeda
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: 5000, // R$ 50,00 (em centavos)
+      currency: 'brl',
       payment_method_types: ['card'],
-      line_items: [
-        {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: 'Soulmate Drawing',
-              description: 'Your personalized soulmate drawing'
-            },
-            unit_amount: 1000, // $10.00 USD
-          },
-          quantity: 1,
-        },
-      ],
-      mode: 'payment',
-      success_url: `${req.headers.origin}/success`,
-      cancel_url: `${req.headers.origin}/cancel`,
     });
 
-    res.json({ url: session.url });
-  } catch (err) {
-    console.error('Erro no Stripe:', err);
-    res.status(500).json({ error: err.message });
+    // ✅ Retorna o clientSecret para o frontend
+    res.status(200).json({
+      clientSecret: paymentIntent.client_secret,
+    });
+  } catch (error) {// ⚠️ Se der erro, retorna o erro
+    res.status(500).json({ error: error.message });
   }
-});
-
-const PORT = 4242;
-app.listen(PORT, () => console.log(`Servidor rodando em http://localhost:${PORT}`));
+};
